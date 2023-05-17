@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".RecordsActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/menu_title_LBL"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Top Ten"
+            android:textColor="@color/black"
+            android:textSize="30sp" />
+       <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+           android:id="@+id/back_to_menu_BTN"
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="back to menu"
+           android:layout_alignParentEnd="true"/>
+    </RelativeLayout>
+
+
+
+    <FrameLayout
+        android:id="@+id/main_FRAME_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/blue_200"
+        android:padding="20dp" />
+
+    <FrameLayout
+        android:id="@+id/main_FRAME_map"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/green_300"
+        android:padding="20dp"
+        />
+</androidx.appcompat.widget.LinearLayoutCompat>

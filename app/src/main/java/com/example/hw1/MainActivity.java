@@ -1,91 +1,126 @@
 package com.example.hw1;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-
-import android.content.Context;
-import android.os.Build;
+import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.hw1.Utilities.MySp;
+import com.example.hw1.Utilities.SignalGenerator;
+import com.example.hw1.logics.GameManager;
+import com.example.hw1.models.Record;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.imageview.ShapeableImageView;
+import com.google.android.material.textview.MaterialTextView;
+import com.google.gson.Gson;
 
 import java.util.Random;
-
 public class MainActivity extends AppCompatActivity {
 
 
 
     private ShapeableImageView[][] board;
     private FloatingActionButton arrow_left_btn;
+    private FusedLocationProviderClient locationClient;
+    private MaterialTextView main_LBL_score;
     private FloatingActionButton arrow_right_btn;
-    private static int colNum=1;
+    private static int colNum=2;
     private ImageView[] heartArr;
-    final int DELAY=1000;
+    private int DELAY;
     private int heartArrayIndex=2;
+    private final int COLS=5;
+    private final int ROWS=8;
+    private GameManager gameManager;
 
-
+    private int counter;
+    private Topten topten;
     protected void onCreate(Bundle savedInstanceState)
     {
         Log.d("pttt","onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        loadData();
         findViews();
         initViews();
+        gameManager=new GameManager(heartArr.length);
     }
     private void findViews()
     {
+        counter=0;
         heartArr=new ImageView[3];
         heartArr[0]=findViewById(R.id.heart_1);
         heartArr[1]=findViewById(R.id.heart_2);
         heartArr[2]=findViewById(R.id.heart_3);
-        board=new ShapeableImageView[8][3];
+        board=new ShapeableImageView[8][5];
         board[0][0]=findViewById(R.id.stone_0_0);
         board[0][1]=findViewById(R.id.stone_0_1);
         board[0][2]=findViewById(R.id.stone_0_2);
+        board[0][3]=findViewById(R.id.stone_0_3);
+        board[0][4]=findViewById(R.id.stone_0_4);
         board[1][0]=findViewById(R.id.stone_1_0);
         board[1][1]=findViewById(R.id.stone_1_1);
         board[1][2]=findViewById(R.id.stone_1_2);
+        board[1][3]=findViewById(R.id.stone_1_3);
+        board[1][4]=findViewById(R.id.stone_1_4);
         board[2][0]=findViewById(R.id.stone_2_0);
         board[2][1]=findViewById(R.id.stone_2_1);
         board[2][2]=findViewById(R.id.stone_2_2);
+        board[2][3]=findViewById(R.id.stone_2_3);
+        board[2][4]=findViewById(R.id.stone_2_4);
         board[3][0]=findViewById(R.id.stone_3_0);
         board[3][1]=findViewById(R.id.stone_3_1);
         board[3][2]=findViewById(R.id.stone_3_2);
+        board[3][3]=findViewById(R.id.stone_3_3);
+        board[3][4]=findViewById(R.id.stone_3_4);
         board[4][0]=findViewById(R.id.stone_4_0);
         board[4][1]=findViewById(R.id.stone_4_1);
         board[4][2]=findViewById(R.id.stone_4_2);
+        board[4][3]=findViewById(R.id.stone_4_3);
+        board[4][4]=findViewById(R.id.stone_4_4);
         board[5][0]=findViewById(R.id.stone_5_0);
         board[5][1]=findViewById(R.id.stone_5_1);
         board[5][2]=findViewById(R.id.stone_5_2);
+        board[5][3]=findViewById(R.id.stone_5_3);
+        board[5][4]=findViewById(R.id.stone_5_4);
         board[6][0]=findViewById(R.id.stone_6_0);
         board[6][1]=findViewById(R.id.stone_6_1);
         board[6][2]=findViewById(R.id.stone_6_2);
+        board[6][3]=findViewById(R.id.stone_6_3);
+        board[6][4]=findViewById(R.id.stone_6_4);
         board[7][0]=findViewById(R.id.car_7_0);
         board[7][1]=findViewById(R.id.car_7_1);
         board[7][2]=findViewById(R.id.car_7_2);
+        board[7][3]=findViewById(R.id.car_7_3);
+        board[7][4]=findViewById(R.id.car_7_4);
         arrow_left_btn=findViewById(R.id.left_btn);
         arrow_right_btn=findViewById(R.id.right_btn);
-
-
+        main_LBL_score=findViewById(R.id.main_LBL_score);
     }
+
+
+
     private void initViews()
     {
+        Intent prevIntent = getIntent();
+
+        DELAY=prevIntent.getIntExtra(MenuActivity.KEY_DELAY,0);
         board[7][0].setVisibility(View.INVISIBLE);
-        board[7][1].setVisibility(View.VISIBLE);
-        board[7][2].setVisibility(View.INVISIBLE);
-        for(int i=0;i<7;i++)
+        board[7][1].setVisibility(View.INVISIBLE);
+        board[7][2].setVisibility(View.VISIBLE);
+        board[7][3].setVisibility(View.INVISIBLE);
+        board[7][4].setVisibility(View.INVISIBLE);
+        for(int i=0;i<ROWS-1;i++)
         {
-            for(int j=0;j<3;j++)
+            for(int j=0;j<COLS;j++)
             {
                 board[i][j].setVisibility(View.INVISIBLE);
             }
@@ -109,9 +144,14 @@ public class MainActivity extends AppCompatActivity {
     {
         if(colNum==1)
         {
+
             board[7][0].setVisibility(View.VISIBLE);
             board[7][1].setVisibility(View.INVISIBLE);
             board[7][2].setVisibility(View.INVISIBLE);
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,1);
+            gameManager.setState(GameManager.State.CAR,7,0);
             colNum=0;
             return;
         }
@@ -120,9 +160,38 @@ public class MainActivity extends AppCompatActivity {
             board[7][0].setVisibility(View.INVISIBLE);
             board[7][1].setVisibility(View.VISIBLE);
             board[7][2].setVisibility(View.INVISIBLE);
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,2);
+            gameManager.setState(GameManager.State.CAR,7,1);
             colNum=1;
             return;
         }
+        if(colNum==3)
+        {
+            board[7][0].setVisibility(View.INVISIBLE);
+            board[7][1].setVisibility(View.INVISIBLE);
+            board[7][2].setVisibility(View.VISIBLE);
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,3);
+            gameManager.setState(GameManager.State.CAR,7,2);
+            colNum=2;
+            return;
+        }
+        if(colNum==4)
+        {
+            board[7][0].setVisibility(View.INVISIBLE);
+            board[7][1].setVisibility(View.INVISIBLE);
+            board[7][2].setVisibility(View.INVISIBLE);
+            board[7][3].setVisibility(View.VISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,4);
+            gameManager.setState(GameManager.State.CAR,7,3);
+            colNum=3;
+            return;
+        }
+
         if(colNum==0)
         {
             return;
@@ -132,57 +201,101 @@ public class MainActivity extends AppCompatActivity {
     }
     private void moveRight()
     {
-        if(colNum==1)
-        {
-            board[7][0].setVisibility(View.INVISIBLE);
-            board[7][1].setVisibility(View.INVISIBLE);
-            board[7][2].setVisibility(View.VISIBLE);
-            colNum=2;
-            return;
-        }
+
         if(colNum==0)
         {
             board[7][0].setVisibility(View.INVISIBLE);
             board[7][1].setVisibility(View.VISIBLE);
             board[7][2].setVisibility(View.INVISIBLE);
-            colNum=1;
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,0);
+            gameManager.setState(GameManager.State.CAR,7,1);
+
+            colNum = 1;
+            return;
+        }
+        if(colNum==1)
+        {
+            board[7][0].setVisibility(View.INVISIBLE);
+            board[7][1].setVisibility(View.INVISIBLE);
+            board[7][2].setVisibility(View.VISIBLE);
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,1);
+            gameManager.setState(GameManager.State.CAR,7,2);
+            colNum=2;
             return;
         }
         if(colNum==2)
+        {
+            board[7][0].setVisibility(View.INVISIBLE);
+            board[7][1].setVisibility(View.INVISIBLE);
+            board[7][2].setVisibility(View.INVISIBLE);
+            board[7][3].setVisibility(View.VISIBLE);
+            board[7][4].setVisibility(View.INVISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,2);
+            gameManager.setState(GameManager.State.CAR,7,3);
+            colNum=3;
             return;
+        }
+
+        if(colNum==3)
+        {
+            board[7][0].setVisibility(View.INVISIBLE);
+            board[7][1].setVisibility(View.INVISIBLE);
+            board[7][2].setVisibility(View.INVISIBLE);
+            board[7][3].setVisibility(View.INVISIBLE);
+            board[7][4].setVisibility(View.VISIBLE);
+            gameManager.setState(GameManager.State.EMPTY,7,3);
+            gameManager.setState(GameManager.State.CAR,7,4);
+            colNum=4;
+            return;
+        }
+        if(colNum==4)
+            return;
+
 
     }
 
 
-    @Override
+
+
+     @Override
     protected void onStart() {
         Log.d("pttt","onStart");
         super.onStart();
-        startGame();
+
     }
+
     @Override
     protected void onResume() {
         Log.d("pttt","onResume");
         super.onResume();
+        startGame();
     }
     @Override
     protected void onPause() {
         Log.d("pttt","onPause");
         super.onPause();
+        stopGame();
     }
 
     @Override
     protected void onStop() {
         Log.d("pttt","onStop");
         super.onStop();
-        stopGame();
+
     }
     final Handler handler=new Handler();
     private Runnable runnable=new Runnable() {
         @Override
         public void run() {
+            Log.d("ptt","DELAY is:"+DELAY+"\n");
             handler.postDelayed(this,DELAY);
-            helper();
+            moveBoard();
+            setRandomStoneOrCoin();
+            main_LBL_score.setText(""+gameManager.getScore());
         }
     };
     private void startGame()
@@ -193,89 +306,115 @@ public class MainActivity extends AppCompatActivity {
     {
         handler.removeCallbacks(runnable);
     }
-    private void setRandomStone()
+
+
+
+    private void setRandomStoneOrCoin()
     {
         Random rnd=new Random();
-        int colIndex=rnd.nextInt(3);
-        board[0][colIndex].setVisibility(View.VISIBLE);
-    }
-    boolean flag=true;
-    private void helper()
-    {
-        if(flag==true)
+        int colIndex=rnd.nextInt(COLS);
+        int isCoin=rnd.nextInt(4);
+        Log.d("pttt","cIndex="+colIndex+"is coin:"+isCoin);
+        if(isCoin==3)
         {
-            setRandomStone();
-            moveStones();
-            flag=false;
+            board[0][colIndex].setImageResource(R.drawable.coin_ic);
+            board[0][colIndex].setVisibility(View.VISIBLE);
+            gameManager.setState(GameManager.State.COIN,0,colIndex);
         }
-        else {
-            moveStones();
-            flag=true;
+        else
+        {
+            board[0][colIndex].setImageResource(R.drawable.stone);
+            board[0][colIndex].setVisibility(View.VISIBLE);
+            gameManager.setState(GameManager.State.STONE,0,colIndex);
         }
-
     }
 
 
-    private void moveStones()
+    private void cleanLastRaw()
     {
-        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        for(int i=6;i>0;i--)
-        {
-            for(int j=0;j<3;j++)
-            {
-                if(board[i-1][j].getVisibility()==View.VISIBLE)
-                {
-                    Log.d("ggg","row:"+i+" cols:"+j);
-                    board[i][j].setVisibility(View.VISIBLE);
-                    board[i-1][j].setVisibility(View.INVISIBLE);
-                }
-            }
-        }
-        if(heartArrayIndex<0)
-        {
-            heartArr[0].setVisibility(View.VISIBLE);
-            heartArr[1].setVisibility(View.VISIBLE);
-            heartArr[2].setVisibility(View.VISIBLE);
-            heartArrayIndex=2;
-        }
-        if(board[7][0].getVisibility()==View.VISIBLE && board[6][0].getVisibility()==View.VISIBLE)
-        {
-            Toast.makeText(MainActivity.this, "you crached ", Toast.LENGTH_SHORT).show();
-            heartArr[heartArrayIndex].setVisibility(View.INVISIBLE);
-            vibrate();
-            heartArrayIndex--;
-        }
-        if(board[7][1].getVisibility()==View.VISIBLE && board[6][1].getVisibility()==View.VISIBLE)
-        {
-            vibrator.vibrate(1000);
-            Toast.makeText(MainActivity.this, "you crached ", Toast.LENGTH_SHORT).show();
-            heartArr[heartArrayIndex].setVisibility(View.INVISIBLE);
-            vibrate();
-            heartArrayIndex--;
-        }
-        if(board[7][2].getVisibility()==View.VISIBLE && board[6][2].getVisibility()==View.VISIBLE)
-        {
-            vibrator.vibrate(1000);
-            Toast.makeText(MainActivity.this, "you crached ", Toast.LENGTH_SHORT).show();
-            heartArr[heartArrayIndex].setVisibility(View.INVISIBLE);
-            vibrate();
-            heartArrayIndex--;
-        }
         board[6][0].setVisibility(View.INVISIBLE);
         board[6][1].setVisibility(View.INVISIBLE);
         board[6][2].setVisibility(View.INVISIBLE);
-
+        board[6][3].setVisibility(View.INVISIBLE);
+        board[6][4].setVisibility(View.INVISIBLE);
+        gameManager.setState(GameManager.State.EMPTY,6,0);
+        gameManager.setState(GameManager.State.EMPTY,6,1);
+        gameManager.setState(GameManager.State.EMPTY,6,2);
+        gameManager.setState(GameManager.State.EMPTY,6,3);
+        gameManager.setState(GameManager.State.EMPTY,6,4);
     }
-    private void vibrate()
+
+    @SuppressLint("MissingPermission")
+
+    private void moveBoard()
     {
-        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
-        } else {
-            //deprecated in API 26
-            v.vibrate(1000);
+        if (gameManager.isCrash() == true) {
+            SignalGenerator.getInstance().toast("you crashed", Toast.LENGTH_SHORT);
+            SignalGenerator.getInstance().playSound();
+            SignalGenerator.getInstance().vibrate(500);
+            heartArr[heartArrayIndex].setVisibility(View.INVISIBLE);
+            gameManager.increaseCrash();
+            heartArrayIndex--;
+        }
+        if (gameManager.gameOver() == true)
+        {
+            locationClient = new FusedLocationProviderClient(this);
+            locationClient.getLastLocation().addOnCompleteListener(task ->
+            {
+                if (task.isSuccessful())
+                {
+                    Location location = task.getResult();
+                    if (location != null)
+                    {
+                        Record newRecord = new Record(gameManager.getScore(), location.getLatitude(), location.getLongitude());
+                        topten.insertNewRecord(newRecord);
+                        String recordToJson = new Gson().toJson(topten);
+                        MySp.getInstance().putString("records",recordToJson);
+                    }
+                }
+                else {
+                    Log.d("taskException "," "+task.getException());
+                }
+            });
+            openRecordActivity();
+        }
+
+        gameManager.increaseScore();
+        cleanLastRaw();
+        for (int i = ROWS - 1; i > 0; i--)
+        {
+            for (int j = 0; j < COLS; j++)
+            {
+
+                if (gameManager.getState(i - 1, j) == GameManager.State.STONE) {
+                    board[i][j].setImageResource(R.drawable.stone);
+                    board[i][j].setVisibility(View.VISIBLE);
+                    board[i - 1][j].setVisibility(View.INVISIBLE);
+                    gameManager.setState(GameManager.State.EMPTY, i - 1, j);
+                    gameManager.setState(GameManager.State.STONE, i, j);
+                } else {
+                    if (gameManager.getState(i - 1, j) == GameManager.State.COIN) {
+                        board[i][j].setImageResource(R.drawable.coin_ic);
+                        board[i][j].setVisibility(View.VISIBLE);
+                        board[i - 1][j].setVisibility(View.INVISIBLE);
+                        gameManager.setState(GameManager.State.EMPTY, i - 1, j);
+                        gameManager.setState(GameManager.State.COIN, i, j);
+                    }
+                }
+            }
         }
     }
+    public void openRecordActivity()
+    {
+        Intent intent = new Intent(this, RecordsActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+
+
+
+
 
 
 
@@ -290,7 +429,17 @@ public class MainActivity extends AppCompatActivity {
         Log.d("pttt","onDestroy");
         super.onDestroy();
     }
-
+   private void loadData()
+   {
+      String fromSp= MySp.getInstance().getString("records","");
+      Log.d("Json:",fromSp);
+      topten=new Gson().fromJson(fromSp,Topten.class);
+      if(topten==null)
+      {
+          topten=new Topten();
+      }
+        topten.toString();
+   }
 
 
 
